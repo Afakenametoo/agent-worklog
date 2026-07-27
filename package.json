@@ -1,0 +1,48 @@
+{
+  "name": "ai-work-report",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "concurrently -k \"tsx watch src/server/index.ts\" \"vite\"",
+    "build": "tsc -p tsconfig.server.json && vite build",
+    "start": "node dist/server/server/index.js",
+    "cli": "tsx src/server/cli.ts",
+    "report:daily": "tsx src/server/cli.ts daily",
+    "report:weekly": "tsx src/server/cli.ts weekly",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.client.json --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "0.115.0",
+    "@fastify/static": "10.1.2",
+    "better-sqlite3": "12.4.1",
+    "date-fns": "4.1.0",
+    "date-fns-tz": "3.2.0",
+    "docx": "9.7.1",
+    "dotenv": "17.2.3",
+    "fastify": "5.10.0",
+    "openai": "6.49.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "7.6.13",
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "@playwright/test": "1.62.0",
+    "@vitejs/plugin-react": "6.0.1",
+    "concurrently": "9.2.1",
+    "tsx": "4.21.0",
+    "typescript": "5.9.3",
+    "vite": "8.1.5",
+    "vitest": "4.1.10"
+  }
+}
