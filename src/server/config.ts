@@ -40,6 +40,9 @@ export const config = {
     process.env.CODEX_HOME || path.join(userHome, ".codex"),
   claudeHome:
     process.env.CLAUDE_HOME || path.join(userHome, ".claude"),
+  opencodeDataDir:
+    process.env.OPENCODE_DATA_DIR ||
+    path.join(userHome, ".local", "share", "opencode"),
   enableWslClaude: envBoolean("ENABLE_WSL_CLAUDE", true),
   excludedProjects: envList("EXCLUDED_PROJECTS"),
   openaiApiKey: process.env.OPENAI_API_KEY || "",
@@ -67,6 +70,7 @@ export function publicSettings(): AppSettings {
     anthropicConfigured: Boolean(config.anthropicApiKey || config.anthropicAuthToken),
     codexHome: config.codexHome,
     claudeHome: config.claudeHome,
+    opencodeDataDir: config.opencodeDataDir,
     enableWslClaude: config.enableWslClaude,
     excludedProjects: config.excludedProjects
   };
@@ -86,6 +90,7 @@ export function applyPublicSettings(
       | "anthropicModel"
       | "codexHome"
       | "claudeHome"
+      | "opencodeDataDir"
       | "enableWslClaude"
       | "excludedProjects"
     >
@@ -102,6 +107,8 @@ export function applyPublicSettings(
   if (settings.anthropicModel !== undefined) config.anthropicModel = settings.anthropicModel;
   if (settings.codexHome !== undefined) config.codexHome = settings.codexHome;
   if (settings.claudeHome !== undefined) config.claudeHome = settings.claudeHome;
+  if (settings.opencodeDataDir !== undefined)
+    config.opencodeDataDir = settings.opencodeDataDir;
   if (settings.enableWslClaude !== undefined) config.enableWslClaude = settings.enableWslClaude;
   if (settings.excludedProjects !== undefined) config.excludedProjects = settings.excludedProjects;
 }

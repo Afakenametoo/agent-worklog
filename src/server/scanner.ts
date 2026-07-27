@@ -4,6 +4,7 @@ import type { SessionDay, SourceHealth } from "../shared/types.js";
 import { config } from "./config.js";
 import { scanClaude, discoverWslClaudeRoots, listClaudeFiles, pathExists } from "./sources/claude.js";
 import { scanCodex, listCodexFiles, codexRootExists } from "./sources/codex.js";
+import { getOpenCodeHealth, scanOpenCode } from "./sources/opencode.js";
 import { redactSensitive, sha256 } from "./util.js";
 
 function isExcluded(session: SessionDay): boolean {
@@ -12,9 +13,13 @@ function isExcluded(session: SessionDay): boolean {
 }
 
 export async function scanSessions(from: string, to: string): Promise<SessionDay[]> {
-  const [codex, claude] = await Promise.all([scanCodex(from, to), scanClaude(from, to)]);
+  const [codex, claude, opencode] = await Promise.all([
+    scanCodex(from, to),
+    scanClaude(from, to),
+    scanOpenCode(from, to)
+  ]);
   const deduped = new Map<string, SessionDay>();
-  for (const session of [...codex, ...claude]) {
+  for (const session of [...codex, ...claude, ...opencode]) {
     if (isExcluded(session)) continue;
     const safeSession = { ...session, title: redactSensitive(session.title) };
     const key = `${session.source}|${session.sessionId}|${session.date}`;
@@ -72,6 +77,7 @@ export async function getSourceHealth(): Promise<SourceHealth[]> {
     rootHealth("claude-windows", "claude-windows", config.claudeHome, true, () =>
       listClaudeFiles(config.claudeHome)
     ),
+    getOpenCodeHealth(),
     ...wsl.map(({ distro, root }) =>
       rootHealth(`claude-wsl-${distro}`, "claude-wsl", root, config.enableWslClaude, () =>
         listClaudeFiles(root)

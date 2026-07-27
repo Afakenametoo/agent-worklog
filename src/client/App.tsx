@@ -55,6 +55,16 @@ function currentIsoWeek(dateText: string): string {
   return `${utc.getUTCFullYear()}-W${String(week).padStart(2, "0")}`;
 }
 
+function healthTimestamp(value: string | null): string {
+  if (!value) return "暂无更新";
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
+}
+
 const emptyDaily: DailyContent = {
   workItems: [],
   problems: [],
@@ -334,6 +344,7 @@ export function App() {
         anthropicModel: settings.anthropicModel,
         codexHome: settings.codexHome,
         claudeHome: settings.claudeHome,
+        opencodeDataDir: settings.opencodeDataDir,
         enableWslClaude: settings.enableWslClaude,
         excludedProjects: settings.excludedProjects
       });
@@ -491,8 +502,14 @@ export function App() {
                     <div>
                       <strong>{source.source}</strong>
                       <small title={source.root}>{source.root}</small>
+                      {source.message && <small className="source-warning">{source.message}</small>}
                     </div>
-                    <b>{source.exists ? `${source.fileCount} 个记录` : "未发现"}</b>
+                    <b>
+                      {source.exists
+                        ? `${source.fileCount} ${source.source === "opencode-windows" ? "个数据库" : "个记录"}`
+                        : "未发现"}
+                      <em>{healthTimestamp(source.lastModified)}</em>
+                    </b>
                   </div>
                 ))}
               </div>
@@ -539,7 +556,7 @@ export function App() {
                 <div className="blank-state">
                   <span className="brand-seal">启</span>
                   <h3>这一天还没有日报</h3>
-                  <p>先扫描 Codex 与 Claude 对话，再生成一份可审阅的结构化草稿。</p>
+                  <p>先扫描 Codex、Claude 与 OpenCode 对话，再生成一份可审阅的结构化草稿。</p>
                   <button className="primary-action" onClick={generateDaily}>生成日报草稿</button>
                 </div>
               )}
@@ -622,6 +639,7 @@ export function App() {
               <div className="panel-title"><div><span>会话来源</span><small>READ-ONLY ROOTS</small></div></div>
               <label>Codex 主目录<input value={settings.codexHome} onChange={(event) => setSettings({ ...settings, codexHome: event.target.value })} /></label>
               <label>Claude 主目录<input value={settings.claudeHome} onChange={(event) => setSettings({ ...settings, claudeHome: event.target.value })} /></label>
+              <label>OpenCode 数据目录<input value={settings.opencodeDataDir} onChange={(event) => setSettings({ ...settings, opencodeDataDir: event.target.value })} /></label>
               <button className="switch-row switch-button" onClick={() => setSettings({ ...settings, enableWslClaude: !settings.enableWslClaude })}><span>扫描 WSL Claude</span><b>{settings.enableWslClaude ? "已启用" : "已关闭"}</b></button>
               <p>应用只读访问会话日志；修改路径不会移动或改写原记录。</p>
             </section>

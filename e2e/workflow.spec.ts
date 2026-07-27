@@ -14,6 +14,7 @@ test("首次打开先保存全局用户名和日报目录", async ({ page }) => 
     anthropicConfigured: false,
     codexHome: "D:\\sessions\\codex",
     claudeHome: "D:\\sessions\\claude",
+    opencodeDataDir: "D:\\sessions\\opencode",
     enableWslClaude: false,
     excludedProjects: []
   };
@@ -37,6 +38,8 @@ test("首次打开先保存全局用户名和日报目录", async ({ page }) => 
 
   await expect(dialog).toBeHidden();
   expect(savedAuthor).toBe("测试用户");
+  await page.getByRole("button", { name: "来源设置" }).click();
+  await expect(page.getByLabel("OpenCode 数据目录")).toHaveValue("D:\\sessions\\opencode");
 });
 
 test("扫描来源并完成日报、周报编辑链路", async ({ page, request }) => {
@@ -57,6 +60,9 @@ test("扫描来源并完成日报、周报编辑链路", async ({ page, request 
   await page.goto("/");
   await expect(page.getByText("让对话留下工作痕迹")).toBeVisible();
   await expect(page.getByText("数据源")).toBeVisible();
+  await expect(page.getByText("opencode-windows", { exact: true })).toBeVisible({
+    timeout: 20_000
+  });
 
   const date = "2026-07-13";
   const daily = {

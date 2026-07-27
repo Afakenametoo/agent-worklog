@@ -149,6 +149,8 @@ button:disabled { cursor: not-allowed; opacity: .45; transform: none !important;
 .source-row strong { text-transform: capitalize; font-size: 12px; }
 .source-row small { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 9px; margin-top: 4px; }
 .source-row b { color: var(--muted); font-size: 10px; }
+.source-row b em { display: block; margin-top: 4px; color: #989184; font: 400 8px monospace; }
+.source-row small.source-warning { color: var(--red); white-space: normal; }
 .session-panel { padding: 24px 26px; min-height: 310px; }
 .session-table { display: grid; }
 .session-row { display: grid; grid-template-columns: 36px 1fr auto; gap: 12px; align-items: center; padding: 13px 4px; border-top: 1px solid var(--line); }
