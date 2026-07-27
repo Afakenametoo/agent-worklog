@@ -30,7 +30,7 @@ vi.mock("./config.js", () => ({
     anthropicBaseUrl: "https://anthropic-compatible.example",
     openaiModel: "gpt-test",
     anthropicModel: "claude-test",
-    author: "朱双庆"
+    author: "测试用户"
   }
 }));
 
@@ -44,7 +44,7 @@ import { generateWeeklyContent } from "./ai.js";
 const weekly = {
   projectName: "日报周报系统",
   dateRange: "2026年7月13日 - 2026年7月19日",
-  author: "朱双庆",
+  author: "测试用户",
   workItems: ["完成适配器"],
   problems: [],
   nextWeekPlans: ["补充联调"],

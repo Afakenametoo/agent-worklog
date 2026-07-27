@@ -7,7 +7,7 @@ const output = await createWeeklyDocx(
   {
     projectName: "AI 对话驱动的日报周报生成系统",
     dateRange: "2026年7月13日 - 2026年7月19日",
-    author: "朱双庆",
+    author: "测试用户",
     workItems: [
       "完成 Codex、Claude Code Windows 与 WSL 会话适配及按上海时区归档。",
       "完成日报生成、结构化编辑、修订留痕和人工确认流程。",

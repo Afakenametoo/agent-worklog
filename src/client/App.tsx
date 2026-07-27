@@ -192,6 +192,7 @@ export function App() {
   const [date, setDate] = useState(today);
   const [isoWeek, setIsoWeek] = useState(currentIsoWeek(today));
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [profileReady, setProfileReady] = useState<boolean | null>(null);
   const [provider, setProvider] = useState<AiProvider>("openai");
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [daily, setDaily] = useState<DailyReportRecord | null>(null);
@@ -227,6 +228,7 @@ export function App() {
     void run(async () => {
       const next = await api.get<AppSettings>("/api/settings");
       setSettings(next);
+      setProfileReady(Boolean(next.author.trim()));
       setProvider(next.defaultProvider);
     });
   }, [run]);
@@ -324,6 +326,7 @@ export function App() {
       const next = await api.patch<AppSettings>("/api/settings", {
         timezone: settings.timezone,
         author: settings.author,
+        dailyOutputDir: settings.dailyOutputDir,
         weeklyReportRoot: settings.weeklyReportRoot,
         weeklyTemplatePath: settings.weeklyTemplatePath,
         defaultProvider: settings.defaultProvider,
@@ -335,12 +338,61 @@ export function App() {
         excludedProjects: settings.excludedProjects
       });
       setSettings(next);
+      setProfileReady(true);
       setProvider(next.defaultProvider);
       setNotice("设置已保存到本机 SQLite；API Key 仍只从环境变量读取。");
     });
 
   return (
     <div className="app-shell">
+      {settings && profileReady === false && (
+        <div className="first-run-backdrop" role="presentation">
+          <section
+            className="first-run-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="first-run-title"
+          >
+            <span className="first-run-kicker">FIRST ENTRY · 首次启用</span>
+            <div className="first-run-heading">
+              <span className="brand-seal">启</span>
+              <div>
+                <h2 id="first-run-title">先留下你的署名</h2>
+                <p>这是本机单用户应用，无需注册账号。用户名会作为报告编写人全局保存。</p>
+              </div>
+            </div>
+            <label>
+              用户名 / 报告编写人
+              <input
+                autoFocus
+                value={settings.author}
+                placeholder="例如：张三"
+                onChange={(event) => setSettings({ ...settings, author: event.target.value })}
+              />
+            </label>
+            <label>
+              日报输出目录
+              <input
+                value={settings.dailyOutputDir}
+                placeholder="例如：D:\reports\daily"
+                onChange={(event) =>
+                  setSettings({ ...settings, dailyOutputDir: event.target.value })
+                }
+              />
+            </label>
+            <p className="first-run-note">
+              设置保存在本机 SQLite，不会上传用户名；日报将按年份写入所选目录。
+            </p>
+            <button
+              className="primary-action wide"
+              disabled={!settings.author.trim() || !settings.dailyOutputDir.trim()}
+              onClick={saveSettings}
+            >
+              保存并进入工作台
+            </button>
+          </section>
+        </div>
+      )}
       <aside className="sidebar">
         <div className="brand">
           <span className="brand-seal">记</span>
@@ -587,8 +639,9 @@ export function App() {
             </section>
             <section className="settings-card">
               <div className="panel-title"><div><span>报告输出</span><small>DOCUMENT ROUTING</small></div></div>
-              <label>编写人<input value={settings.author} onChange={(event) => setSettings({ ...settings, author: event.target.value })} /></label>
+              <label>用户名 / 编写人<input value={settings.author} onChange={(event) => setSettings({ ...settings, author: event.target.value })} /></label>
               <label>时区<input value={settings.timezone} onChange={(event) => setSettings({ ...settings, timezone: event.target.value })} /></label>
+              <label>日报目录<input value={settings.dailyOutputDir} onChange={(event) => setSettings({ ...settings, dailyOutputDir: event.target.value })} /></label>
               <label>周报目录<input value={settings.weeklyReportRoot} onChange={(event) => setSettings({ ...settings, weeklyReportRoot: event.target.value })} /></label>
               <label>参考模板<input value={settings.weeklyTemplatePath} onChange={(event) => setSettings({ ...settings, weeklyTemplatePath: event.target.value })} /></label>
               <label>排除项目（逗号分隔）<input value={settings.excludedProjects.join(", ")} onChange={(event) => setSettings({ ...settings, excludedProjects: event.target.value.split(",").map((value) => value.trim()).filter(Boolean) })} /></label>

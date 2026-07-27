@@ -51,6 +51,16 @@ function providerFrom(value: unknown): AiProvider {
   return AiProviderSchema.parse(value ?? config.defaultProvider);
 }
 
+function requireProfile(): void {
+  if (!config.author.trim()) {
+    const error = new Error("请先完成首次设置并保存用户名。") as Error & {
+      statusCode?: number;
+    };
+    error.statusCode = 409;
+    throw error;
+  }
+}
+
 export async function buildApp() {
   applyPublicSettings(getStoredSettings());
   const app = Fastify({ logger: true, bodyLimit: 2 * 1024 * 1024 });
@@ -89,7 +99,8 @@ export async function buildApp() {
     const values = z
       .object({
         timezone: z.string().min(1).optional(),
-        author: z.string().min(1).optional(),
+        author: z.string().trim().min(1).optional(),
+        dailyOutputDir: z.string().trim().min(1).optional(),
         weeklyReportRoot: z.string().min(1).optional(),
         weeklyTemplatePath: z.string().optional(),
         defaultProvider: AiProviderSchema.optional(),
@@ -150,6 +161,7 @@ export async function buildApp() {
   });
 
   app.post("/api/daily/:date", async (request) => {
+    requireProfile();
     const { date } = z.object({ date: DateSchema }).parse(request.params);
     const body = z.object({ provider: AiProviderSchema.optional() }).parse(request.body ?? {});
     const provider = providerFrom(body.provider);
@@ -165,12 +177,14 @@ export async function buildApp() {
   });
 
   app.patch("/api/daily/:date", async (request) => {
+    requireProfile();
     const { date } = z.object({ date: DateSchema }).parse(request.params);
     const content = DailyContentSchema.parse(request.body);
     return editDaily(date, content);
   });
 
   app.post("/api/daily/:date/confirm", async (request) => {
+    requireProfile();
     const { date } = z.object({ date: DateSchema }).parse(request.params);
     return confirmDaily(date);
   });
@@ -185,6 +199,7 @@ export async function buildApp() {
   });
 
   app.post("/api/weekly/:isoWeek", async (request) => {
+    requireProfile();
     const { isoWeek } = z.object({ isoWeek: IsoWeekSchema }).parse(request.params);
     const body = z.object({ provider: AiProviderSchema.optional() }).parse(request.body ?? {});
     const provider = providerFrom(body.provider);
@@ -197,11 +212,13 @@ export async function buildApp() {
   });
 
   app.patch("/api/weekly/:isoWeek", async (request) => {
+    requireProfile();
     const { isoWeek } = z.object({ isoWeek: IsoWeekSchema }).parse(request.params);
     return editWeekly(isoWeek, WeeklyContentSchema.parse(request.body));
   });
 
   app.post("/api/weekly/:isoWeek/export", async (request) => {
+    requireProfile();
     const { isoWeek } = z.object({ isoWeek: IsoWeekSchema }).parse(request.params);
     return createJob("export", async (update) => {
       update(20, "正在生成 Word 文档");

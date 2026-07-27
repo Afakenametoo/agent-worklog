@@ -13,6 +13,8 @@ npm run dev
 
 浏览器打开 <http://127.0.0.1:5178>。生产模式：
 
+首次打开时先填写用户名（报告编写人）和日报输出目录。这些全局设置保存在本机 SQLite 中，后续启动自动沿用，也可以随时在“来源设置”中修改。
+
 ```powershell
 npm run build
 npm start
@@ -32,7 +34,6 @@ Anthropic 兼容服务可通过 `ANTHROPIC_AUTH_TOKEN`、`ANTHROPIC_BASE_URL`
   - `session_index.jsonl`
 - Claude Windows：`%USERPROFILE%\.claude\projects/**/*.jsonl`
 - Claude WSL：自动发现非 `docker-desktop` 发行版的 `/home/*/.claude`
-
 会话按每条消息的时间戳换算为 `Asia/Shanghai` 日期。Codex 的 developer、reasoning、工具输出和注入上下文，以及 Claude 的 thinking、tool_result、sidechain、subagent 日志不会进入总结输入。
 
 ## 报告工作流
@@ -40,9 +41,9 @@ Anthropic 兼容服务可通过 `ANTHROPIC_AUTH_TOKEN`、`ANTHROPIC_BASE_URL`
 1. 在“今日总览”检查来源和有效会话。
 2. 生成日报草稿，在“日报编辑”修订后确认。
 3. “周报编排”只合并周一至周日的已确认日报。
-4. Word 输出到 `D:\code\weekly_report\YYYY-NNN\朱双庆MMDD-MMDD.docx`。
+4. Word 输出到 `<周报目录>\YYYY-NNN\<编写人>MMDD-MMDD.docx`。
 
-日报同时写入 `data/daily/YYYY/YYYY-MM-DD.md`。SQLite 只保存报告、摘要缓存、设置和任务状态，不复制完整原始对话。
+日报同时写入 `<日报目录>\YYYY\YYYY-MM-DD.md`；目录可以在首次设置或“来源设置”中选择。SQLite 只保存报告、摘要缓存、设置和任务状态，不复制完整原始对话。
 
 ## 命令行和定时任务
 

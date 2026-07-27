@@ -63,7 +63,7 @@ export function dailyMarkdown(report: DailyReportRecord): string {
 
 export async function writeDailyMarkdown(report: DailyReportRecord): Promise<string> {
   const year = report.date.slice(0, 4);
-  const dir = path.join(config.dailyDir, year);
+  const dir = path.join(config.dailyOutputDir, year);
   await ensureDirectory(dir);
   const outputPath = path.join(dir, `${report.date}.md`);
   const temporary = `${outputPath}.tmp`;

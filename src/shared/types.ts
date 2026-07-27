@@ -115,6 +115,7 @@ export interface SourceHealth {
 export interface AppSettings {
   timezone: string;
   author: string;
+  dailyOutputDir: string;
   weeklyReportRoot: string;
   weeklyTemplatePath: string;
   defaultProvider: AiProvider;

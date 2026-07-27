@@ -19,7 +19,7 @@ describe("weekly Word export", () => {
       {
         projectName: "日报周报生成系统",
         dateRange: "2026年7月13日 - 2026年7月19日",
-        author: "朱双庆",
+        author: "测试用户",
         workItems: ["完成多来源会话解析", "完成日报编辑与确认流程"],
         problems: [{ problem: "日志结构不同", solution: "采用来源适配器统一规范化" }],
         nextWeekPlans: ["补充真实 API 联调"],
@@ -27,7 +27,7 @@ describe("weekly Word export", () => {
       },
       root
     );
-    expect(output).toBe(path.join(root, "2026-029", "朱双庆0713-0719.docx"));
+    expect(output).toBe(path.join(root, "2026-029", "测试用户0713-0719.docx"));
     expect(await inspectWeeklyDocx(output)).toMatchObject({ exists: true, extensionValid: true });
   });
 });

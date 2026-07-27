@@ -28,14 +28,14 @@ export const config = {
   port: Number(process.env.PORT || 4178),
   dataDir: path.join(workspaceRoot, "data"),
   databasePath: path.join(workspaceRoot, "data", "report.db"),
-  dailyDir: path.join(workspaceRoot, "data", "daily"),
+  dailyOutputDir:
+    process.env.DAILY_REPORT_ROOT || path.join(workspaceRoot, "data", "daily"),
   qaDir: path.join(workspaceRoot, "data", "qa"),
   timezone: process.env.TIMEZONE || "Asia/Shanghai",
-  author: process.env.REPORT_AUTHOR || "朱双庆",
-  weeklyReportRoot: process.env.WEEKLY_REPORT_ROOT || "D:\\code\\weekly_report",
-  weeklyTemplatePath:
-    process.env.WEEKLY_TEMPLATE_PATH ||
-    "D:\\code\\weekly_report\\2026-004\\01驻场人员研发周报模板.docx",
+  author: process.env.REPORT_AUTHOR || "",
+  weeklyReportRoot:
+    process.env.WEEKLY_REPORT_ROOT || path.join(workspaceRoot, "data", "weekly"),
+  weeklyTemplatePath: process.env.WEEKLY_TEMPLATE_PATH || "",
   codexHome:
     process.env.CODEX_HOME || path.join(userHome, ".codex"),
   claudeHome:
@@ -57,6 +57,7 @@ export function publicSettings(): AppSettings {
   return {
     timezone: config.timezone,
     author: config.author,
+    dailyOutputDir: config.dailyOutputDir,
     weeklyReportRoot: config.weeklyReportRoot,
     weeklyTemplatePath: config.weeklyTemplatePath,
     defaultProvider: config.defaultProvider,
@@ -77,6 +78,7 @@ export function applyPublicSettings(
       AppSettings,
       | "timezone"
       | "author"
+      | "dailyOutputDir"
       | "weeklyReportRoot"
       | "weeklyTemplatePath"
       | "defaultProvider"
@@ -91,6 +93,7 @@ export function applyPublicSettings(
 ): void {
   if (settings.timezone !== undefined) config.timezone = settings.timezone;
   if (settings.author !== undefined) config.author = settings.author;
+  if (settings.dailyOutputDir !== undefined) config.dailyOutputDir = settings.dailyOutputDir;
   if (settings.weeklyReportRoot !== undefined) config.weeklyReportRoot = settings.weeklyReportRoot;
   if (settings.weeklyTemplatePath !== undefined)
     config.weeklyTemplatePath = settings.weeklyTemplatePath;
