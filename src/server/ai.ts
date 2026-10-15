@@ -1,6 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import OpenAI from "openai";
+import type {
+  ChatCompletion,
+  ChatCompletionCreateParamsNonStreaming
+} from "openai/resources/chat/completions";
 import { zodTextFormat } from "openai/helpers/zod";
 import type { z } from "zod";
 import {
@@ -95,6 +99,103 @@ function extractAnthropicText(response: unknown): string {
   return text;
 }
 
+type DeepSeekMessage = ChatCompletion["choices"][number]["message"] & {
+  reasoning_content?: unknown;
+};
+
+function isDeepSeekAnthropicEndpoint(baseUrl: string): boolean {
+  if (!baseUrl) return false;
+  try {
+    return new URL(baseUrl).hostname.toLowerCase() === "api.deepseek.com";
+  } catch {
+    return false;
+  }
+}
+
+function deepSeekOpenAiBaseUrl(baseUrl: string): string {
+  const url = new URL(baseUrl);
+  url.pathname = url.pathname.replace(/\/anthropic\/?$/i, "") || "/";
+  url.search = "";
+  url.hash = "";
+  return url.toString().replace(/\/$/, "");
+}
+
+function deepSeekBlockTypes(message: DeepSeekMessage | undefined): string[] {
+  if (!message) return [];
+  const types = new Set<string>();
+  if (typeof message.content === "string") types.add("text");
+  if (Array.isArray(message.content)) {
+    for (const block of message.content as Array<{ type?: unknown }>) {
+      types.add(typeof block.type === "string" ? block.type : "content");
+    }
+  }
+  if (message.reasoning_content !== undefined && message.reasoning_content !== null)
+    types.add("reasoning");
+  if (message.tool_calls?.length) types.add("tool_calls");
+  if (message.refusal !== undefined && message.refusal !== null) types.add("refusal");
+  return [...types].sort();
+}
+
+function logDeepSeekResponse(response: ChatCompletion, attempt: number): void {
+  const choice = response.choices[0];
+  console.info(
+    `[ai.deepseek.response] ${JSON.stringify({
+      attempt,
+      stop_reason: choice?.finish_reason ?? null,
+      block_types: deepSeekBlockTypes(choice?.message as DeepSeekMessage | undefined)
+    })}`
+  );
+}
+
+function extractDeepSeekText(response: ChatCompletion): string {
+  const message = response.choices[0]?.message as DeepSeekMessage | undefined;
+  if (message?.refusal) throw new Error("DeepSeek 拒绝生成报告。");
+  const content = message?.content;
+  const text =
+    typeof content === "string"
+      ? content.trim()
+      : Array.isArray(content)
+        ? (content as Array<{ type?: string; text?: string }>)
+            .filter((block) => block.type === "text" && typeof block.text === "string")
+            .map((block) => block.text)
+            .join("\n")
+            .trim()
+        : "";
+  if (!text) throw new Error("DeepSeek 兼容端点未返回文本内容。");
+  return text;
+}
+
+async function callDeepSeekStructured<T extends z.ZodType>(
+  model: string,
+  schema: T,
+  system: string,
+  prompt: string,
+  attempt: number
+): Promise<z.infer<T>> {
+  const client = new OpenAI({
+    apiKey: config.anthropicApiKey || config.anthropicAuthToken,
+    baseURL: deepSeekOpenAiBaseUrl(config.anthropicBaseUrl),
+    maxRetries: 0,
+    timeout: config.aiRequestTimeoutMs
+  });
+  const params: ChatCompletionCreateParamsNonStreaming & {
+    thinking: { type: "disabled" };
+  } = {
+    model,
+    max_tokens: 8192,
+    stream: false,
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: prompt }
+    ],
+    response_format: { type: "json_object" },
+    thinking: { type: "disabled" }
+  };
+  const response = await client.chat.completions.create(params);
+  logDeepSeekResponse(response, attempt);
+  return parseSchemaValue(schema, extractJsonValue(extractDeepSeekText(response)));
+}
+
 function parseSchemaValue<T extends z.ZodType>(schema: T, value: unknown): z.infer<T> {
   const candidates: unknown[] = [value];
   if (value && typeof value === "object" && !Array.isArray(value)) {
@@ -134,6 +235,25 @@ function parseSchemaValue<T extends z.ZodType>(schema: T, value: unknown): z.inf
   );
 }
 
+function isRetryableAiError(error: unknown): boolean {
+  const candidate = error as { status?: unknown; code?: unknown; name?: unknown; message?: unknown };
+  const status = typeof candidate?.status === "number" ? candidate.status : null;
+  if (status !== null) return status === 408 || status === 409 || status === 429 || status >= 500;
+  const code = String(candidate?.code ?? "").toUpperCase();
+  if (["ECONNRESET", "ETIMEDOUT", "ECONNREFUSED", "EAI_AGAIN"].includes(code)) return true;
+  const message = String(candidate?.message ?? error ?? "").toLowerCase();
+  return [
+    "timeout",
+    "timed out",
+    "rate limit",
+    "未返回文本内容",
+    "不完整的 json",
+    "没有 json 对象",
+    "字段不符合要求",
+    "可解析的结构化结果"
+  ].some((fragment) => message.includes(fragment));
+}
+
 async function callStructured<T extends z.ZodType>(
   provider: AiProvider,
   model: string,
@@ -147,7 +267,11 @@ async function callStructured<T extends z.ZodType>(
     try {
       if (provider === "openai") {
         if (!config.openaiApiKey) throw new MissingApiKeyError(provider);
-        const client = new OpenAI({ apiKey: config.openaiApiKey, maxRetries: 0 });
+        const client = new OpenAI({
+          apiKey: config.openaiApiKey,
+          maxRetries: 0,
+          timeout: config.aiRequestTimeoutMs
+        });
         const response = await client.responses.parse({
           model,
           store: false,
@@ -162,12 +286,6 @@ async function callStructured<T extends z.ZodType>(
 
       if (!config.anthropicApiKey && !config.anthropicAuthToken)
         throw new MissingApiKeyError(provider);
-      const client = new Anthropic({
-        apiKey: config.anthropicApiKey || null,
-        authToken: config.anthropicAuthToken || null,
-        baseURL: config.anthropicBaseUrl || undefined,
-        maxRetries: 0
-      });
       const outputFormat = zodOutputFormat(schema);
       const compatiblePrompt = config.anthropicBaseUrl
         ? [
@@ -176,6 +294,22 @@ async function callStructured<T extends z.ZodType>(
             JSON.stringify(outputFormat.schema)
           ].join("\n\n")
         : prompt;
+      if (isDeepSeekAnthropicEndpoint(config.anthropicBaseUrl)) {
+        return await callDeepSeekStructured(
+          model,
+          schema,
+          system,
+          compatiblePrompt,
+          attempt + 1
+        );
+      }
+      const client = new Anthropic({
+        apiKey: config.anthropicApiKey || null,
+        authToken: config.anthropicAuthToken || null,
+        baseURL: config.anthropicBaseUrl || undefined,
+        maxRetries: 0,
+        timeout: config.aiRequestTimeoutMs
+      });
       const params: Anthropic.MessageCreateParamsNonStreaming = {
         model,
         max_tokens: 8192,
@@ -195,7 +329,8 @@ async function callStructured<T extends z.ZodType>(
     } catch (error) {
       if (error instanceof MissingApiKeyError) throw error;
       lastError = error;
-      if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+      if (attempt >= 2 || !isRetryableAiError(error)) break;
+      await new Promise((resolve) => setTimeout(resolve, 750 * 2 ** attempt));
     }
   }
   throw lastError instanceof Error ? lastError : new Error("模型调用失败。");

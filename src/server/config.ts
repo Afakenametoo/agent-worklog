@@ -51,6 +51,7 @@ export const config = {
   anthropicBaseUrl: process.env.ANTHROPIC_BASE_URL || "",
   openaiModel: process.env.OPENAI_MODEL || "gpt-5.6-terra",
   anthropicModel: process.env.ANTHROPIC_MODEL || "claude-sonnet-5",
+  aiRequestTimeoutMs: Number(process.env.AI_REQUEST_TIMEOUT_MS || 90_000),
   defaultProvider: (
     process.env.DEFAULT_AI_PROVIDER === "anthropic" ? "anthropic" : "openai"
   ) as AiProvider
