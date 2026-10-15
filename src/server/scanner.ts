@@ -7,12 +7,29 @@ import { scanCodex, listCodexFiles, codexRootExists } from "./sources/codex.js";
 import { getOpenCodeHealth, scanOpenCode } from "./sources/opencode.js";
 import { redactSensitive, sha256 } from "./util.js";
 
+const SCAN_CACHE_TTL_MS = 15_000;
+const scanCache = new Map<string, { expiresAt: number; sessions: SessionDay[] }>();
+const activeScans = new Map<string, Promise<SessionDay[]>>();
+
+function scanCacheKey(from: string, to: string): string {
+  return JSON.stringify({
+    from,
+    to,
+    timezone: config.timezone,
+    codexHome: config.codexHome,
+    claudeHome: config.claudeHome,
+    opencodeDataDir: config.opencodeDataDir,
+    enableWslClaude: config.enableWslClaude,
+    excludedProjects: config.excludedProjects
+  });
+}
+
 function isExcluded(session: SessionDay): boolean {
   const haystack = `${session.project}\n${session.title}\n${session.sourcePath}`.toLowerCase();
   return config.excludedProjects.some((pattern) => haystack.includes(pattern.toLowerCase()));
 }
 
-export async function scanSessions(from: string, to: string): Promise<SessionDay[]> {
+async function scanSessionsUncached(from: string, to: string): Promise<SessionDay[]> {
   const [codex, claude, opencode] = await Promise.all([
     scanCodex(from, to),
     scanClaude(from, to),
@@ -41,6 +58,28 @@ export async function scanSessions(from: string, to: string): Promise<SessionDay
   return [...deduped.values()].sort((a, b) =>
     `${a.date}|${a.project}|${a.sessionId}`.localeCompare(`${b.date}|${b.project}|${b.sessionId}`)
   );
+}
+
+export async function scanSessions(from: string, to: string): Promise<SessionDay[]> {
+  const key = scanCacheKey(from, to);
+  const cached = scanCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.sessions;
+  const active = activeScans.get(key);
+  if (active) return active;
+
+  const scan = scanSessionsUncached(from, to);
+  activeScans.set(key, scan);
+  try {
+    const sessions = await scan;
+    scanCache.set(key, { expiresAt: Date.now() + SCAN_CACHE_TTL_MS, sessions });
+    return sessions;
+  } finally {
+    activeScans.delete(key);
+  }
+}
+
+export function clearScanCache(): void {
+  scanCache.clear();
 }
 
 async function rootHealth(

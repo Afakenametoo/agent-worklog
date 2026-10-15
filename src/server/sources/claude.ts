@@ -14,6 +14,12 @@ import {
 } from "../util.js";
 
 const execFileAsync = promisify(execFile);
+const WSL_DISCOVERY_TTL_MS = 30_000;
+let wslDiscoveryCache: {
+  expiresAt: number;
+  roots: Array<{ distro: string; root: string }>;
+} | null = null;
+let activeWslDiscovery: Promise<Array<{ distro: string; root: string }>> | null = null;
 type JsonObject = Record<string, unknown>;
 
 function object(value: unknown): JsonObject | null {
@@ -110,7 +116,7 @@ function decodeWslOutput(value: string | Buffer): string {
   return utf8.includes("\u0000") ? value.toString("utf16le") : utf8;
 }
 
-export async function discoverWslClaudeRoots(): Promise<
+async function discoverWslClaudeRootsUncached(): Promise<
   Array<{ distro: string; root: string }>
 > {
   if (process.platform !== "win32" || !config.enableWslClaude) return [];
@@ -145,6 +151,25 @@ export async function discoverWslClaudeRoots(): Promise<
     return roots;
   } catch {
     return [];
+  }
+}
+
+export async function discoverWslClaudeRoots(): Promise<
+  Array<{ distro: string; root: string }>
+> {
+  if (process.platform !== "win32" || !config.enableWslClaude) return [];
+  if (wslDiscoveryCache && wslDiscoveryCache.expiresAt > Date.now()) {
+    return wslDiscoveryCache.roots;
+  }
+  if (activeWslDiscovery) return activeWslDiscovery;
+
+  activeWslDiscovery = discoverWslClaudeRootsUncached();
+  try {
+    const roots = await activeWslDiscovery;
+    wslDiscoveryCache = { expiresAt: Date.now() + WSL_DISCOVERY_TTL_MS, roots };
+    return roots;
+  } finally {
+    activeWslDiscovery = null;
   }
 }
 
