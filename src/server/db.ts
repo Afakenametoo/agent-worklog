@@ -133,6 +133,30 @@ export function listLatestDailies(from: string, to: string): DailyReportRecord[]
   return rows.map(parseDaily);
 }
 
+export function listLatestConfirmedDailies(from: string, to: string): DailyReportRecord[] {
+  const rows = db
+    .prepare(`
+      SELECT d.* FROM daily_reports d
+      JOIN (
+        SELECT local_date, MAX(revision) AS revision
+        FROM daily_reports
+        WHERE local_date BETWEEN ? AND ? AND status = 'confirmed'
+        GROUP BY local_date
+      ) latest ON latest.local_date = d.local_date AND latest.revision = d.revision
+      ORDER BY d.local_date
+    `)
+    .all(from, to) as Record<string, unknown>[];
+  return rows.map(parseDaily);
+}
+
+export function listDailiesForWeekly(from: string, to: string): DailyReportRecord[] {
+  const latest = listLatestDailies(from, to);
+  const confirmed = new Map(
+    listLatestConfirmedDailies(from, to).map((report) => [report.date, report])
+  );
+  return latest.map((report) => confirmed.get(report.date) ?? report);
+}
+
 export function saveDaily(input: {
   date: string;
   status: DailyStatus;
@@ -285,6 +309,22 @@ export function getJob(id: string): JobRecord | null {
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at)
   };
+}
+
+export function failInterruptedJobs(): number {
+  const now = new Date().toISOString();
+  const result = db
+    .prepare(`
+      UPDATE jobs
+      SET status = 'failed',
+          progress = 100,
+          message = '执行失败',
+          error = '服务重启导致任务中断，请重新执行。',
+          updated_at = ?
+      WHERE status IN ('queued', 'running')
+    `)
+    .run(now);
+  return result.changes;
 }
 
 export function getStoredSettings(): Record<string, unknown> {

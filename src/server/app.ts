@@ -15,7 +15,8 @@ import {
   getLatestDaily,
   getLatestWeekly,
   getStoredSettings,
-  listLatestDailies,
+  failInterruptedJobs,
+  listDailiesForWeekly,
   saveStoredSettings
 } from "./db.js";
 import { createJob, subscribeJob } from "./jobs.js";
@@ -63,6 +64,7 @@ function requireProfile(): void {
 
 export async function buildApp() {
   applyPublicSettings(getStoredSettings());
+  failInterruptedJobs();
   const app = Fastify({ logger: true, bodyLimit: 2 * 1024 * 1024 });
 
   app.addHook("onRequest", async (request, reply) => {
@@ -194,7 +196,7 @@ export async function buildApp() {
     const { isoWeek } = z.object({ isoWeek: IsoWeekSchema }).parse(request.params);
     const range = isoWeekRange(isoWeek);
     const report = getLatestWeekly(isoWeek);
-    const dailies = listLatestDailies(range.start, range.end);
+    const dailies = listDailiesForWeekly(range.start, range.end);
     if (!report && !dailies.length) return reply.code(404).send({ error: "该周尚无日报或周报。" });
     return { report, range, dailies };
   });

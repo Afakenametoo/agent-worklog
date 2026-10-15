@@ -10,6 +10,8 @@ import { generateDailyContent, generateWeeklyContent, modelFor } from "./ai.js";
 import {
   getLatestDaily,
   getLatestWeekly,
+  listDailiesForWeekly,
+  listLatestConfirmedDailies,
   listLatestDailies,
   saveDaily,
   saveWeekly
@@ -73,8 +75,12 @@ export async function generateWeekly(
   provider: AiProvider
 ): Promise<WeeklyReportRecord> {
   const range = isoWeekRange(isoWeek);
-  const dailies = listLatestDailies(range.start, range.end);
-  const unconfirmed = dailies.filter((daily) => daily.status !== "confirmed");
+  const latest = listLatestDailies(range.start, range.end);
+  const dailies = listLatestConfirmedDailies(range.start, range.end);
+  const confirmedDates = new Set(dailies.map((daily) => daily.date));
+  const unconfirmed = latest.filter(
+    (daily) => daily.status !== "confirmed" && !confirmedDates.has(daily.date)
+  );
   if (unconfirmed.length) {
     throw new Error(`存在未确认日报：${unconfirmed.map((daily) => daily.date).join("、")}`);
   }
@@ -103,7 +109,7 @@ export function editWeekly(isoWeek: string, content: WeeklyContent): WeeklyRepor
     isoWeek,
     status: "draft",
     content: WeeklyContentSchema.parse(content),
-    dailyDates: current?.dailyDates ?? listLatestDailies(range.start, range.end).map((item) => item.date),
+    dailyDates: current?.dailyDates ?? listDailiesForWeekly(range.start, range.end).map((item) => item.date),
     provider: current?.provider ?? null,
     model: current?.model ?? null
   });
