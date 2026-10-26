@@ -1,6 +1,6 @@
 # 工作手记：AI 对话驱动的日报/周报
 
-本地读取 Codex、Claude Code 与 OpenCode 会话，过滤系统指令、推理和原始工具输出，通过 OpenAI 或 Anthropic API 生成可审阅日报，再把已确认日报合并为 Word 周报。
+本地读取 Codex、Claude Code、OpenCode 与 WorkBuddy 会话，过滤系统指令、推理和原始工具输出，通过 OpenAI 或 Anthropic API 生成可审阅日报，再把已确认日报合并为 Word 周报。
 
 ## 快速开始
 
@@ -35,8 +35,10 @@ Anthropic 兼容服务可通过 `ANTHROPIC_AUTH_TOKEN`、`ANTHROPIC_BASE_URL`
 - Claude Windows：`%USERPROFILE%\.claude\projects/**/*.jsonl`
 - Claude WSL：自动发现非 `docker-desktop` 发行版的 `/home/*/.claude`
 - OpenCode Windows：`%USERPROFILE%\.local\share\opencode\opencode*.db`
+- WorkBuddy Windows：`%WORKBUDDY_HOME%` 或 `%USERPROFILE%\.workbuddy`
+  - `projects/**/*.jsonl`（不含 `subagents`）
 
-会话按每条消息的时间戳换算为 `Asia/Shanghai` 日期。Codex 的 developer、reasoning、工具输出和注入上下文，Claude 的 thinking、tool_result、sidechain、subagent 日志，以及 OpenCode 的 reasoning、tool、compaction、附件、快照和子会话不会进入总结输入。OpenCode 数据库始终以只读方式访问。
+会话按每条消息的时间戳换算为 `Asia/Shanghai` 日期。Codex 的 developer、reasoning、工具输出和注入上下文，Claude 的 thinking、tool_result、sidechain、subagent 日志，OpenCode 的 reasoning、tool、compaction、附件、快照和子会话，以及 WorkBuddy 的系统提醒、reasoning、function call/result、文件快照和 subagent 日志不会进入总结输入。所有来源均只读访问，OpenCode 数据库以只读模式打开。
 
 ## 报告工作流
 

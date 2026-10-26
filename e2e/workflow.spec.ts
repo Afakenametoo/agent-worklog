@@ -15,6 +15,7 @@ test("首次打开先保存全局用户名和日报目录", async ({ page }) => 
     codexHome: "D:\\sessions\\codex",
     claudeHome: "D:\\sessions\\claude",
     opencodeDataDir: "D:\\sessions\\opencode",
+    workbuddyHome: "D:\\sessions\\workbuddy",
     enableWslClaude: false,
     excludedProjects: []
   };
@@ -40,6 +41,7 @@ test("首次打开先保存全局用户名和日报目录", async ({ page }) => 
   expect(savedAuthor).toBe("测试用户");
   await page.getByRole("button", { name: "来源设置" }).click();
   await expect(page.getByLabel("OpenCode 数据目录")).toHaveValue("D:\\sessions\\opencode");
+  await expect(page.getByLabel("WorkBuddy 主目录")).toHaveValue("D:\\sessions\\workbuddy");
 });
 
 test("扫描来源并完成日报、周报编辑链路", async ({ page, request }) => {

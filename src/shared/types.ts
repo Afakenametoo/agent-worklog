@@ -6,7 +6,13 @@ export const ProblemSchema = z.object({
 });
 
 export const SourceRefSchema = z.object({
-  source: z.enum(["codex", "claude-windows", "claude-wsl", "opencode-windows"]),
+  source: z.enum([
+    "codex",
+    "claude-windows",
+    "claude-wsl",
+    "opencode-windows",
+    "workbuddy-windows"
+  ]),
   sessionId: z.string(),
   title: z.string(),
   project: z.string(),
@@ -126,6 +132,7 @@ export interface AppSettings {
   codexHome: string;
   claudeHome: string;
   opencodeDataDir: string;
+  workbuddyHome: string;
   enableWslClaude: boolean;
   excludedProjects: string[];
 }

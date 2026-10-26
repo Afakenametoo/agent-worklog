@@ -5,11 +5,13 @@ const mocks = vi.hoisted(() => ({
   scanCodex: vi.fn(),
   scanClaude: vi.fn(),
   scanOpenCode: vi.fn(),
+  scanWorkBuddy: vi.fn(),
   config: {
     timezone: "Asia/Shanghai",
     codexHome: "C:\\codex",
     claudeHome: "C:\\claude",
     opencodeDataDir: "C:\\opencode",
+    workbuddyHome: "C:\\workbuddy",
     enableWslClaude: false,
     excludedProjects: [] as string[]
   }
@@ -39,6 +41,11 @@ vi.mock("./sources/opencode.js", () => ({
     lastModified: null
   }))
 }));
+vi.mock("./sources/workbuddy.js", () => ({
+  scanWorkBuddy: mocks.scanWorkBuddy,
+  listWorkBuddyFiles: vi.fn(async () => []),
+  workBuddyRootExists: vi.fn(async () => true)
+}));
 
 import { clearScanCache, scanSessions } from "./scanner.js";
 
@@ -58,6 +65,7 @@ beforeEach(() => {
   mocks.scanCodex.mockReset().mockResolvedValue([session]);
   mocks.scanClaude.mockReset().mockResolvedValue([]);
   mocks.scanOpenCode.mockReset().mockResolvedValue([]);
+  mocks.scanWorkBuddy.mockReset().mockResolvedValue([]);
 });
 
 describe("session scan cache", () => {
@@ -74,6 +82,7 @@ describe("session scan cache", () => {
     expect(mocks.scanCodex).toHaveBeenCalledTimes(1);
     expect(mocks.scanClaude).toHaveBeenCalledTimes(1);
     expect(mocks.scanOpenCode).toHaveBeenCalledTimes(1);
+    expect(mocks.scanWorkBuddy).toHaveBeenCalledTimes(1);
   });
 
   it("设置变化后使用新的缓存键", async () => {

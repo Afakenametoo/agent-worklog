@@ -5,6 +5,11 @@ import { config } from "./config.js";
 import { scanClaude, discoverWslClaudeRoots, listClaudeFiles, pathExists } from "./sources/claude.js";
 import { scanCodex, listCodexFiles, codexRootExists } from "./sources/codex.js";
 import { getOpenCodeHealth, scanOpenCode } from "./sources/opencode.js";
+import {
+  listWorkBuddyFiles,
+  scanWorkBuddy,
+  workBuddyRootExists
+} from "./sources/workbuddy.js";
 import { redactSensitive, sha256 } from "./util.js";
 
 const SCAN_CACHE_TTL_MS = 15_000;
@@ -19,6 +24,7 @@ function scanCacheKey(from: string, to: string): string {
     codexHome: config.codexHome,
     claudeHome: config.claudeHome,
     opencodeDataDir: config.opencodeDataDir,
+    workbuddyHome: config.workbuddyHome,
     enableWslClaude: config.enableWslClaude,
     excludedProjects: config.excludedProjects
   });
@@ -30,13 +36,14 @@ function isExcluded(session: SessionDay): boolean {
 }
 
 async function scanSessionsUncached(from: string, to: string): Promise<SessionDay[]> {
-  const [codex, claude, opencode] = await Promise.all([
+  const [codex, claude, opencode, workbuddy] = await Promise.all([
     scanCodex(from, to),
     scanClaude(from, to),
-    scanOpenCode(from, to)
+    scanOpenCode(from, to),
+    scanWorkBuddy(from, to)
   ]);
   const deduped = new Map<string, SessionDay>();
-  for (const session of [...codex, ...claude, ...opencode]) {
+  for (const session of [...codex, ...claude, ...opencode, ...workbuddy]) {
     if (isExcluded(session)) continue;
     const safeSession = { ...session, title: redactSensitive(session.title) };
     const key = `${session.source}|${session.sessionId}|${session.date}`;
@@ -89,7 +96,13 @@ async function rootHealth(
   enabled: boolean,
   files: () => Promise<string[]>
 ): Promise<SourceHealth> {
-  const exists = enabled && (source === "codex" ? await codexRootExists(root) : await pathExists(root));
+  const exists =
+    enabled &&
+    (source === "codex"
+      ? await codexRootExists(root)
+      : source === "workbuddy-windows"
+        ? await workBuddyRootExists(root)
+        : await pathExists(root));
   if (!exists) {
     return { id, source, root, enabled, exists: false, fileCount: 0, lastModified: null };
   }
@@ -117,6 +130,9 @@ export async function getSourceHealth(): Promise<SourceHealth[]> {
       listClaudeFiles(config.claudeHome)
     ),
     getOpenCodeHealth(),
+    rootHealth("workbuddy-windows", "workbuddy-windows", config.workbuddyHome, true, () =>
+      listWorkBuddyFiles(config.workbuddyHome)
+    ),
     ...wsl.map(({ distro, root }) =>
       rootHealth(`claude-wsl-${distro}`, "claude-wsl", root, config.enableWslClaude, () =>
         listClaudeFiles(root)

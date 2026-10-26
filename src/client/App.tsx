@@ -345,6 +345,7 @@ export function App() {
         codexHome: settings.codexHome,
         claudeHome: settings.claudeHome,
         opencodeDataDir: settings.opencodeDataDir,
+        workbuddyHome: settings.workbuddyHome,
         enableWslClaude: settings.enableWslClaude,
         excludedProjects: settings.excludedProjects
       });
@@ -556,7 +557,7 @@ export function App() {
                 <div className="blank-state">
                   <span className="brand-seal">启</span>
                   <h3>这一天还没有日报</h3>
-                  <p>先扫描 Codex、Claude 与 OpenCode 对话，再生成一份可审阅的结构化草稿。</p>
+                  <p>先扫描 Codex、Claude、OpenCode 与 WorkBuddy 对话，再生成一份可审阅的结构化草稿。</p>
                   <button className="primary-action" onClick={generateDaily}>生成日报草稿</button>
                 </div>
               )}
@@ -640,6 +641,7 @@ export function App() {
               <label>Codex 主目录<input value={settings.codexHome} onChange={(event) => setSettings({ ...settings, codexHome: event.target.value })} /></label>
               <label>Claude 主目录<input value={settings.claudeHome} onChange={(event) => setSettings({ ...settings, claudeHome: event.target.value })} /></label>
               <label>OpenCode 数据目录<input value={settings.opencodeDataDir} onChange={(event) => setSettings({ ...settings, opencodeDataDir: event.target.value })} /></label>
+              <label>WorkBuddy 主目录<input value={settings.workbuddyHome} onChange={(event) => setSettings({ ...settings, workbuddyHome: event.target.value })} /></label>
               <button className="switch-row switch-button" onClick={() => setSettings({ ...settings, enableWslClaude: !settings.enableWslClaude })}><span>扫描 WSL Claude</span><b>{settings.enableWslClaude ? "已启用" : "已关闭"}</b></button>
               <p>应用只读访问会话日志；修改路径不会移动或改写原记录。</p>
             </section>

@@ -111,6 +111,7 @@ export async function buildApp() {
         codexHome: z.string().min(1).optional(),
         claudeHome: z.string().min(1).optional(),
         opencodeDataDir: z.string().min(1).optional(),
+        workbuddyHome: z.string().min(1).optional(),
         enableWslClaude: z.boolean().optional(),
         excludedProjects: z.array(z.string()).optional()
       })
@@ -129,7 +130,7 @@ export async function buildApp() {
         to: todayInTimezone(config.timezone)
       });
     return createJob("scan", async (update) => {
-      update(10, "正在读取 Codex、Claude 与 OpenCode 会话索引");
+      update(10, "正在读取 Codex、Claude、OpenCode 与 WorkBuddy 会话索引");
       const sessions = await scanSessions(body.from, body.to);
       update(90, "正在整理扫描结果");
       return { from: body.from, to: body.to, ...sourceSummary(sessions) };

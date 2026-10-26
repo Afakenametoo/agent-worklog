@@ -43,6 +43,8 @@ export const config = {
   opencodeDataDir:
     process.env.OPENCODE_DATA_DIR ||
     path.join(userHome, ".local", "share", "opencode"),
+  workbuddyHome:
+    process.env.WORKBUDDY_HOME || path.join(userHome, ".workbuddy"),
   enableWslClaude: envBoolean("ENABLE_WSL_CLAUDE", true),
   excludedProjects: envList("EXCLUDED_PROJECTS"),
   openaiApiKey: process.env.OPENAI_API_KEY || "",
@@ -72,6 +74,7 @@ export function publicSettings(): AppSettings {
     codexHome: config.codexHome,
     claudeHome: config.claudeHome,
     opencodeDataDir: config.opencodeDataDir,
+    workbuddyHome: config.workbuddyHome,
     enableWslClaude: config.enableWslClaude,
     excludedProjects: config.excludedProjects
   };
@@ -92,6 +95,7 @@ export function applyPublicSettings(
       | "codexHome"
       | "claudeHome"
       | "opencodeDataDir"
+      | "workbuddyHome"
       | "enableWslClaude"
       | "excludedProjects"
     >
@@ -110,6 +114,7 @@ export function applyPublicSettings(
   if (settings.claudeHome !== undefined) config.claudeHome = settings.claudeHome;
   if (settings.opencodeDataDir !== undefined)
     config.opencodeDataDir = settings.opencodeDataDir;
+  if (settings.workbuddyHome !== undefined) config.workbuddyHome = settings.workbuddyHome;
   if (settings.enableWslClaude !== undefined) config.enableWslClaude = settings.enableWslClaude;
   if (settings.excludedProjects !== undefined) config.excludedProjects = settings.excludedProjects;
 }
