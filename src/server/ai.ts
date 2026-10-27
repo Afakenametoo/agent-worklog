@@ -347,6 +347,19 @@ const evidenceRules = [
   "最终只输出一个 JSON 对象，不要使用 Markdown 代码块，也不要添加解释文字。"
 ].join("\n");
 
+// 日报要点样式约定：以项目为主线、条目集中、面向主管汇报。
+// 该约定只约束表达方式，不改变 evidenceRules 的事实边界。
+const dailyStyleRules = [
+  "日报的读者是直属主管，用第一人称完成态汇报（完成、推进、梳理、定位、修复、产出），不出现“助手”“用户要求”“我让它”等对话痕迹。",
+  "以项目为主线组织内容：每条要点以“项目名：”开头；同一项目的零散动作合并成一条项目进展，不同项目分别成条，并按对本职工作的影响排序。",
+  "要点集中凝练：workItems 控制在 3 至 6 条，项目较多时最多 8 条；每条 1 至 2 句、约 40 至 100 字，只回答“做了什么、做到什么程度、产出或结论是什么”。",
+  "单条内不并列堆砌多个子任务；同类排查、修复、验证、文档归并为一条，确有必要时用“并/同时”连接。",
+  "突出项目层级的进展与结果，具体文件、函数、脚本、接口、字段和英文技术术语只作括注补充，每条至多一处，不写行号、绝对路径、命令原文和字节数级细节。",
+  "problems 只保留影响项目推进或结论的关键问题，同一主题合并，最多 4 条；solution 写实际处理结论，未闭环的写明“待处理”。",
+  "nextSteps 写项目层面的下一步动作，最多 5 条；uncertainties 只保留会改变结论的待确认点，最多 4 条，可从简。",
+  "禁止“完成若干项工作”“推进相关工作”这类无法验证的空泛表述，也不要为凑条目拆分同一次工作。"
+].join("\n");
+
 function sessionTranscript(session: SessionDay): string {
   const rows = session.events.map(
     (event) =>
@@ -378,7 +391,10 @@ export async function summarizeSessionDay(
     SessionSummarySchema,
     "session_summary",
     evidenceRules,
-    `请从下面单个会话在单日内的记录中提取研发工作事实。若没有相应事实，返回空数组。\n\n${transcript}`
+    `请从下面单个会话在单日内的记录中提取研发工作事实。若没有相应事实，返回空数组。
+accomplishments 以“项目进展”为单位归纳，同一次工作的多个文件改动、命令、验证步骤合并成一条，不要按文件或步骤逐条拆分；文件与技术细节只在必要处用括号补充。
+
+${transcript}`
   );
   saveCachedSummary({
     cacheKey,
@@ -422,10 +438,12 @@ export async function generateDailyContent(
     model,
     DailyContentSchema.omit({ sourceRefs: true }),
     "daily_report",
-    evidenceRules,
+    [evidenceRules, dailyStyleRules].join("\n\n"),
     [
       `请将以下会话摘要合成为 ${date} 日报。`,
-      "相同项目和事项应去重合并；问题必须有输入中明确对应的处理办法，否则放入待确认事项。",
+      "相同项目和事项必须去重合并为一条项目进展，不得把一个项目的多个动作拆成多条。",
+      "问题必须有输入中明确对应的处理办法，否则放入待确认事项。",
+      "写作口径：以项目为主线，先给项目级结论，再把具体文件、接口、技术细节降为括注补充；宁可少一条，也不要把一条写散。",
       JSON.stringify(summaries, null, 2)
     ].join("\n\n")
   );

@@ -9,6 +9,8 @@ function yamlString(value: string): string {
 }
 
 export function dailyMarkdown(report: DailyReportRecord): string {
+  const numbered = (items: string[], fallback: string): string[] =>
+    items.length ? items.map((item, index) => `${index + 1}. ${item}`) : [`1. ${fallback}`];
   const lines = [
     "---",
     `date: ${yamlString(report.date)}`,
@@ -23,30 +25,24 @@ export function dailyMarkdown(report: DailyReportRecord): string {
     "",
     "## 今日完成",
     "",
-    ...(report.content.workItems.length
-      ? report.content.workItems.map((item) => `- ${item}`)
-      : ["- 暂无可确认完成事项。"]),
+    ...numbered(report.content.workItems, "暂无可确认完成事项。"),
     "",
     "## 问题与处理",
     "",
     ...(report.content.problems.length
-      ? report.content.problems.flatMap((item) => [
-          `- 问题：${item.problem}`,
-          `  - 处理：${item.solution}`
+      ? report.content.problems.flatMap((item, index) => [
+          `${index + 1}. 问题：${item.problem}`,
+          `   - 处理：${item.solution}`
         ])
-      : ["- 暂无明确问题记录。"]),
+      : ["1. 暂无明确问题记录。"]),
     "",
     "## 后续计划",
     "",
-    ...(report.content.nextSteps.length
-      ? report.content.nextSteps.map((item) => `- ${item}`)
-      : ["- 暂无明确后续计划。"]),
+    ...numbered(report.content.nextSteps, "暂无明确后续计划。"),
     "",
     "## 待确认事项",
     "",
-    ...(report.content.uncertainties.length
-      ? report.content.uncertainties.map((item) => `- ${item}`)
-      : ["- 无。"]),
+    ...numbered(report.content.uncertainties, "无。"),
     "",
     "## 来源会话",
     "",

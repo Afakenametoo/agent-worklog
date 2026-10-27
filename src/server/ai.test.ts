@@ -47,7 +47,8 @@ vi.mock("./db.js", () => ({
   saveCachedSummary: vi.fn()
 }));
 
-import { generateWeeklyContent } from "./ai.js";
+import { generateDailyContent, generateWeeklyContent } from "./ai.js";
+import type { SessionDay } from "../shared/types.js";
 
 const weekly = {
   projectName: "日报周报系统",
@@ -185,5 +186,83 @@ describe("structured AI providers", () => {
       generateWeeklyContent("2026-W29", weekly.dateRange, [], "openai", "gpt-test")
     ).rejects.toThrow("invalid api key");
     expect(mocks.openAiParse).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("daily report style contract", () => {
+  const session: SessionDay = {
+    source: "workbuddy-windows",
+    sessionId: "session-1",
+    title: "修复瓦片属性",
+    project: "dxapp",
+    date: "2026-10-26",
+    sourcePath: "C:/sessions/session-1.jsonl",
+    events: [
+      {
+        id: "e1",
+        timestamp: "2026-10-26T02:00:00.000Z",
+        localDate: "2026-10-26",
+        role: "user",
+        phase: "prompt",
+        text: "给 3dtiles 模型加上名称、描述、备注三个属性"
+      }
+    ],
+    contentHash: "hash-1"
+  };
+
+  it("injects project-first, condensed style rules into the daily synthesis prompt", async () => {
+    mocks.openAiParse
+      .mockResolvedValueOnce({
+        output: [
+          {
+            type: "message",
+            content: [
+              {
+                type: "output_text",
+                parsed: {
+                  projects: ["dxapp"],
+                  accomplishments: ["为瓦片补充批次属性，使前端可弹出要素信息"],
+                  problems: [],
+                  nextSteps: [],
+                  uncertainties: []
+                }
+              }
+            ]
+          }
+        ]
+      })
+      .mockResolvedValueOnce({
+        output: [
+          {
+            type: "message",
+            content: [
+              {
+                type: "output_text",
+                parsed: {
+                  workItems: ["dxapp：完成三维模型要素属性补齐，点击可查看名称与备注"],
+                  problems: [],
+                  nextSteps: [],
+                  uncertainties: []
+                }
+              }
+            ]
+          }
+        ]
+      });
+
+    const content = await generateDailyContent("2026-10-26", [session], "openai", "gpt-test");
+    expect(content.workItems).toEqual([
+      "dxapp：完成三维模型要素属性补齐，点击可查看名称与备注"
+    ]);
+
+    const synthesis = mocks.openAiParse.mock.calls[1]?.[0] as {
+      input: Array<{ role: string; content: string }>;
+    };
+    const system = synthesis.input[0]?.content ?? "";
+    const user = synthesis.input[1]?.content ?? "";
+    expect(system).toContain("以项目为主线");
+    expect(system).toContain("3 至 6 条");
+    expect(system).toContain("括注补充");
+    expect(user).toContain("不得把一个项目的多个动作拆成多条");
   });
 });
